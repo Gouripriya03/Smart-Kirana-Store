@@ -35,7 +35,7 @@ export default function ShopkeeperDashboard({ user, items, orders, onAddItem, on
     setQuantity('');
   };
 
-  const myItems = items.filter(i => i.shopkeeperId === user.id || i.shopkeeperId === 'system');
+  const myItems = items.filter(i => i.shopkeeperId === user.id);
   const pendingOrders = orders.filter(o => o.status === OrderStatus.PENDING);
 
   return (
@@ -164,7 +164,7 @@ export default function ShopkeeperDashboard({ user, items, orders, onAddItem, on
 
               <div className="space-y-4">
                 {myItems.map((item) => (
-                  <div key={item.id} className="bg-white p-5 rounded-[20px] border border-gray-100 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow group">
+                  <div key={item._id || item.id} className="bg-white p-5 rounded-[20px] border border-gray-100 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow group">
                     <div className="flex items-center gap-4">
                       <div className="w-16 h-16 bg-emerald-50 rounded-xl flex items-center justify-center relative">
                         <Package className="w-8 h-8 text-emerald-600" />
@@ -193,7 +193,7 @@ export default function ShopkeeperDashboard({ user, items, orders, onAddItem, on
                     
                     <div className="flex items-center gap-2">
                       <button 
-                        onClick={() => onToggleAvailability(item.id)}
+                        onClick={() => onToggleAvailability((item._id || item.id)!)}
                         className={cn(
                           "px-4 py-2 rounded-xl text-xs font-bold transition-all border",
                           item.inStock !== false 
@@ -204,7 +204,7 @@ export default function ShopkeeperDashboard({ user, items, orders, onAddItem, on
                         {item.inStock !== false ? 'Mark Out of Stock' : 'Mark Available'}
                       </button>
                       <button 
-                        onClick={() => onDeleteItem(item.id)}
+                        onClick={() => onDeleteItem((item._id || item.id)!)}
                         className="p-3 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
                       >
                         <Trash2 className="w-5 h-5" />
@@ -238,12 +238,12 @@ export default function ShopkeeperDashboard({ user, items, orders, onAddItem, on
                 </div>
               ) : (
                 orders.map(order => (
-                  <div key={order.id} className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm flex flex-col md:flex-row">
+                  <div key={order._id || order.id} className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm flex flex-col md:flex-row">
                     <div className="p-8 border-b md:border-b-0 md:border-r border-gray-100 bg-emerald-50/30 flex flex-col justify-between w-full md:w-80">
                       <div>
                         <div className="flex items-center justify-between mb-4">
                           <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-white px-2 py-1 rounded-full border border-emerald-100">
-                            #{order.id}
+                            #{order._id || order.id}
                           </span>
                           <span className={cn(
                             "text-xs font-bold px-2 py-1 rounded-full",
@@ -252,8 +252,8 @@ export default function ShopkeeperDashboard({ user, items, orders, onAddItem, on
                             {order.status.toUpperCase()}
                           </span>
                         </div>
-                        <h3 className="font-black text-gray-900 text-xl">{order.customerEmail.split('@')[0]}</h3>
-                        <p className="text-xs text-gray-500 font-medium mb-4">{order.customerEmail}</p>
+                        <h3 className="font-black text-gray-900 text-xl">{order.customerEmail?.split('@')[0] || 'Customer'}</h3>
+                        <p className="text-xs text-gray-500 font-medium mb-4">{order.customerEmail || 'No Email'}</p>
                         
                         <div className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                           <ShoppingBag className="w-4 h-4" />
@@ -301,7 +301,7 @@ export default function ShopkeeperDashboard({ user, items, orders, onAddItem, on
                        <div className="flex gap-4">
                         {order.status === OrderStatus.PENDING && (
                            <button 
-                            onClick={() => onUpdateOrderStatus(order.id, OrderStatus.COMPLETED)}
+                            onClick={() => onUpdateOrderStatus((order._id || order.id)!, OrderStatus.COMPLETED)}
                             className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-100"
                           >
                             <CheckCircle2 className="w-5 h-5" />

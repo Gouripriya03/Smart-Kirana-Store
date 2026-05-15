@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Store, ShoppingBasket, Mail, Lock, User, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { UserRole, AuthMode, User as UserType } from '@/src/types';
+import { api } from '@/src/services/api';
 
 interface AuthPageProps {
-  onAuth: (user: UserType) => void;
+  onAuth: (user: UserType, token: string) => void;
 }
 
 export default function AuthPage({ onAuth }: AuthPageProps) {
@@ -15,19 +16,24 @@ export default function AuthPage({ onAuth }: AuthPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const endpoint = mode === 'signin' ? '/auth/login' : '/auth/register';
+      const res = await api.post(endpoint, { email, password, role });
+      
+      if (res.token) {
+        onAuth(res.user, res.token);
+      } else {
+        alert(res.message || 'Authentication failed');
+      }
+    } catch (err) {
+      alert('Connection error');
+    } finally {
       setLoading(false);
-      onAuth({
-        id: Math.random().toString(36).substr(2, 9),
-        email,
-        role
-      });
-    }, 1000);
+    }
   };
 
   return (

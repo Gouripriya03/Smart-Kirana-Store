@@ -3,64 +3,106 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AuthPage from './components/AuthPage';
 import CustomerDashboard from './components/CustomerDashboard';
 import ShopkeeperDashboard from './components/ShopkeeperDashboard';
 import { User, Item, UserRole, Order } from './types';
-
-// Initial mock data
-const INITIAL_ITEMS: Item[] = [
-  { id: '1', name: 'Basmati Rice', price: 450, quantity: '5kg', shopkeeperId: 'system', inStock: true },
-  { id: '2', name: 'Toor Dal', price: 120, quantity: '1kg', shopkeeperId: 'system', inStock: true },
-  { id: '3', name: 'Sunflower Oil', price: 165, quantity: '1L', shopkeeperId: 'system', inStock: false },
-  { id: '4', name: 'Aashirvaad Atta', price: 290, quantity: '5kg', shopkeeperId: 'system', inStock: true },
-  { id: '5', name: 'Sugar', price: 45, quantity: '1kg', shopkeeperId: 'system', inStock: true },
-];
+import { api } from './services/api';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [items, setItems] = useState<Item[]>(INITIAL_ITEMS);
+  const [items, setItems] = useState<Item[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleAuth = (loggedInUser: User) => {
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+    if (savedUser && token) {
+      setUser(JSON.parse(savedUser));
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
+
+  const fetchData = async () => {
+    try {
+      const fetchedItems = await api.get('/items');
+      setItems(Array.isArray(fetchedItems) ? fetchedItems : []);
+      
+      const fetchedOrders = await api.get('/orders');
+      setOrders(Array.isArray(fetchedOrders) ? fetchedOrders : []);
+    } catch (err) {
+      console.error('Failed to fetch data');
+    }
+  };
+
+  const handleAuth = (loggedInUser: User, token: string) => {
+    localStorage.setItem('user', JSON.stringify(loggedInUser));
+    localStorage.setItem('token', token);
     setUser(loggedInUser);
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
     setUser(null);
   };
 
-  const handleAddItem = (newItem: Omit<Item, 'id' | 'shopkeeperId' | 'inStock'>) => {
-    if (!user) return;
-    const item: Item = {
-      ...newItem,
-      id: Math.random().toString(36).substr(2, 9),
-      shopkeeperId: user.id,
-      inStock: true
-    };
-    setItems(prev => [item, ...prev]);
+  const handleAddItem = async (newItem: Omit<Item, 'id' | 'shopkeeperId' | 'inStock'>) => {
+    try {
+      const addedItem = await api.post('/items', newItem);
+      setItems(prev => [addedItem, ...prev]);
+    } catch (err) {
+      console.error('Failed to add item');
+    }
   };
 
-  const handleToggleAvailability = (id: string) => {
-    setItems(prev => prev.map(item => 
-      item.id === id ? { ...item, inStock: !item.inStock } : item
-    ));
+  const handleToggleAvailability = async (id: string) => {
+    try {
+      const updatedItem = await api.patch(`/items/${id}/stock`);
+      setItems(prev => prev.map(item => item._id === id ? updatedItem : item));
+    } catch (err) {
+      console.error('Failed to toggle availability');
+    }
   };
 
-  const handleDeleteItem = (id: string) => {
-    setItems(prev => prev.filter(item => item.id !== id));
+  const handleDeleteItem = async (id: string) => {
+    try {
+      await api.delete(`/items/${id}`);
+      setItems(prev => prev.filter(item => (item._id || item.id) !== id));
+    } catch (err) {
+      console.error('Failed to delete item');
+    }
   };
 
-  const handlePlaceOrder = (order: Order) => {
-    setOrders(prev => [order, ...prev]);
+  const handlePlaceOrder = async (orderData: any) => {
+    try {
+      const placedOrder = await api.post('/orders', orderData);
+      setOrders(prev => [placedOrder, ...prev]);
+    } catch (err) {
+      console.error('Failed to place order');
+    }
   };
 
-  const handleUpdateOrderStatus = (orderId: string, status: Order['status']) => {
-    setOrders(prev => prev.map(order => 
-      order.id === orderId ? { ...order, status } : order
-    ));
+  const handleUpdateOrderStatus = async (orderId: string, status: Order['status']) => {
+    try {
+      const updatedOrder = await api.patch(`/orders/${orderId}/status`, { status });
+      setOrders(prev => prev.map(order => 
+        (order._id || order.id) === orderId ? updatedOrder : order
+      ));
+    } catch (err) {
+      console.error('Failed to update status');
+    }
   };
+
+  if (loading) return null;
 
   return (
     <main className="min-h-screen bg-[#F8FAF8]">

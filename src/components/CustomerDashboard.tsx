@@ -25,22 +25,23 @@ export default function CustomerDashboard({ user, items, onLogout, onPlaceOrder 
   const total = subtotal + deliveryFee;
 
   const addToCart = (item: Item) => {
+    const itemId = item._id || item.id;
     setCart(prev => {
-      const existing = prev.find(i => i.id === item.id);
+      const existing = prev.find(i => (i._id || i.id) === itemId);
       if (existing) {
-        return prev.map(i => i.id === item.id ? { ...i, orderQuantity: i.orderQuantity + 1 } : i);
+        return prev.map(i => (i._id || i.id) === itemId ? { ...i, orderQuantity: i.orderQuantity + 1 } : i);
       }
       return [...prev, { ...item, orderQuantity: 1 }];
     });
   };
 
   const getItemQuantity = (id: string) => {
-    return cart.find(i => i.id === id)?.orderQuantity || 0;
+    return cart.find(i => (i._id || i.id) === id)?.orderQuantity || 0;
   };
 
   const updateQuantity = (id: string, delta: number) => {
     setCart(prev => prev.map(item => {
-      if (item.id === id) {
+      if ((item._id || item.id) === id) {
         const newQty = Math.max(0, item.orderQuantity + delta);
         return { ...item, orderQuantity: newQty };
       }
@@ -54,19 +55,19 @@ export default function CustomerDashboard({ user, items, onLogout, onPlaceOrder 
     setShowCheckoutModal(true);
   };
 
-  const handlePlaceOrder = () => {
-    const newOrder: Order = {
-      id: Math.random().toString(36).substr(2, 9),
-      customerId: user.id,
-      customerEmail: user.email,
-      items: cart,
+  const handlePlaceOrder = async () => {
+    const orderData = {
+      items: cart.map(item => ({
+        productId: item._id || item.id,
+        name: item.name,
+        price: item.price,
+        orderQuantity: item.orderQuantity
+      })),
       total,
-      deliveryMethod,
-      deliveryFee,
-      status: OrderStatus.PENDING,
-      createdAt: Date.now()
+      deliveryMethod
     };
-    onPlaceOrder(newOrder);
+    
+    await onPlaceOrder(orderData);
     setCheckoutStep('success');
     setCart([]);
     setTimeout(() => {
@@ -156,7 +157,7 @@ export default function CustomerDashboard({ user, items, onLogout, onPlaceOrder 
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {items.map((item) => (
-            <div key={item.id} className={cn(
+            <div key={item._id || item.id} className={cn(
               "bg-white rounded-2xl border border-gray-100 p-4 shadow-sm transition-all group flex flex-col relative",
               item.inStock === false && "opacity-75 grayscale-[0.5]"
             )}>
@@ -185,15 +186,15 @@ export default function CustomerDashboard({ user, items, onLogout, onPlaceOrder 
               <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
                 <span className="text-xl font-bold text-emerald-600">₹{item.price}</span>
                 {item.inStock !== false ? (
-                  getItemQuantity(item.id) > 0 ? (
+                  getItemQuantity((item._id || item.id)!) > 0 ? (
                     <div className="flex items-center gap-3 bg-emerald-50 rounded-xl px-1 py-1">
                       <button 
-                        onClick={() => updateQuantity(item.id, -1)}
+                        onClick={() => updateQuantity((item._id || item.id)!, -1)}
                         className="p-1.5 bg-white text-emerald-600 rounded-lg shadow-sm hover:text-emerald-700 transition-colors"
                       >
                         <Minus className="w-4 h-4" />
                       </button>
-                      <span className="font-bold text-emerald-700 w-4 text-center">{getItemQuantity(item.id)}</span>
+                      <span className="font-bold text-emerald-700 w-4 text-center">{getItemQuantity((item._id || item.id)!)}</span>
                       <button 
                         onClick={() => addToCart(item)}
                         className="p-1.5 bg-emerald-600 text-white rounded-lg shadow-sm hover:bg-emerald-700 transition-colors"
@@ -248,7 +249,7 @@ export default function CustomerDashboard({ user, items, onLogout, onPlaceOrder 
                   </div>
                   <div className="flex-1 overflow-y-auto p-6 space-y-4">
                     {cart.map(item => (
-                      <div key={item.id} className="flex justify-between items-center bg-gray-50 p-4 rounded-2xl">
+                      <div key={item._id || item.id} className="flex justify-between items-center bg-gray-50 p-4 rounded-2xl">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-emerald-600">
                              <ShoppingCart className="w-5 h-5" />
@@ -261,21 +262,21 @@ export default function CustomerDashboard({ user, items, onLogout, onPlaceOrder 
                         <div className="flex items-center gap-3">
                           <div className="flex items-center gap-2 bg-white rounded-lg p-1 shadow-sm border border-gray-100">
                             <button 
-                              onClick={() => updateQuantity(item.id, -1)}
+                              onClick={() => updateQuantity((item._id || item.id)!, -1)}
                               className="p-1 hover:bg-gray-50 text-gray-400 hover:text-emerald-600 transition-colors"
                             >
                               <Minus className="w-3.5 h-3.5" />
                             </button>
                             <span className="font-bold text-sm w-4 text-center">{item.orderQuantity}</span>
                             <button 
-                              onClick={() => updateQuantity(item.id, 1)}
+                              onClick={() => updateQuantity((item._id || item.id)!, 1)}
                               className="p-1 hover:bg-gray-50 text-gray-400 hover:text-emerald-600 transition-colors"
                             >
                               <Plus className="w-3.5 h-3.5" />
                             </button>
                           </div>
                           <button 
-                            onClick={() => updateQuantity(item.id, -item.orderQuantity)}
+                            onClick={() => updateQuantity((item._id || item.id)!, -item.orderQuantity)}
                             className="p-2 text-gray-300 hover:text-red-500 transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />

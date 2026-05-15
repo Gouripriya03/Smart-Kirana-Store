@@ -6,7 +6,8 @@ export enum UserRole {
 export type AuthMode = 'signin' | 'signup';
 
 export interface Item {
-  id: string;
+  id?: string;
+  _id?: string;
   name: string;
   price: number;
   quantity: string;
@@ -31,7 +32,8 @@ export interface OrderItem extends Item {
 }
 
 export interface Order {
-  id: string;
+  id?: string;
+  _id?: string;
   customerId: string;
   customerEmail: string;
   items: OrderItem[];
